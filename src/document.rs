@@ -30,6 +30,13 @@ impl Document {
             row.insert(at.x, c);
         }
     }
+    pub fn remove(&mut self, at: &Position) {
+        if at.y >= self.len() {
+            return;
+        }
+        let row = self.rows.get_mut(at.y).unwrap();
+        row.remove(at.x);
+    }
     pub fn row(&self, index: usize) -> Option<&Row> {
         self.rows.get(index)
     }

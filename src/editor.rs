@@ -110,6 +110,11 @@ impl Editor {
                 self.document.insert(&self.cursor_position, c);
                 self.move_cursor(Key::Right);
             }
+            Key::Backspace => {
+                self.document.remove(&self.cursor_position);
+                self.move_cursor(Key::Left);
+            }
+            Key::Delete => self.document.remove(&self.cursor_position),
             | Key::Up
             | Key::Down
             | Key::Left
