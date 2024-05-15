@@ -20,7 +20,12 @@ impl Document {
             file_name: Some(filename.to_string()),
         })
     }
+
     pub fn insert(&mut self, at: &Position, c: char) {
+        if c == '\n' {
+            self.insert_newline(at);
+            return;
+        }
         if at.y == self.len() {
             let mut row = Row::default();
             row.insert(0, c);
@@ -30,6 +35,19 @@ impl Document {
             row.insert(at.x, c);
         }
     }
+
+    fn insert_newline(&mut self, at: &Position) {
+        if at.y > self.len() {
+            return;
+        }
+        if at.y == self.len() {
+            self.rows.push(Row::default());
+            return;
+        }
+        let new_row = self.rows.get_mut(at.y).unwrap().split(at.x);
+        self.rows.insert(at.y + 1, new_row);
+    }
+
     pub fn remove(&mut self, at: &Position) {
         let len = self.len();
         if at.y >= len {
@@ -45,12 +63,15 @@ impl Document {
             row.remove(at.x);
         }
     }
+
     pub fn row(&self, index: usize) -> Option<&Row> {
         self.rows.get(index)
     }
+
     pub fn is_empty(&self) -> bool {
         self.rows.is_empty()
     }
+
     pub fn len(&self) -> usize {
         self.rows.len()
     }
