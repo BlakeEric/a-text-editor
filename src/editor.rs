@@ -10,6 +10,7 @@ use termion::event::Key;
 const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
 const STATUS_FG_COLOR: color::Rgb = color::Rgb(255, 0, 0);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const FORCE_QUIT_ATTEMPTS: u8 = 3;
 
 #[derive(Default)]
 pub struct Position {
@@ -24,6 +25,7 @@ pub struct Editor {
     offset: Position,
     document: Document,
     status_message: StatusMessage,
+    quit_attempts: u8,
 }
 
 struct StatusMessage {
@@ -77,6 +79,7 @@ impl Editor {
             cursor_position: Position::default(),
             offset: Position::default(),
             status_message: StatusMessage::from(initial_status),
+            quit_attempts: FORCE_QUIT_ATTEMPTS,
         }
     }
 
@@ -103,7 +106,7 @@ impl Editor {
 
     fn prompt(&mut self, prompt: &str) -> Result<String, std::io::Error> {
         let mut result = String::new();
-        // let mut result = String::new(format!("{}{}", prompt, result));
+
         loop {
             self.status_message = StatusMessage::from(format!("{}{}", prompt, result));
             self.refresh_screen()?;
@@ -124,6 +127,16 @@ impl Editor {
         let pressed_key = Terminal::read_key()?;
         match pressed_key {
             Key::Ctrl('c') => {
+                if self.quit_attempts > 0 && self.document.is_dirty() {
+                    self.status_message = StatusMessage::from(
+                        format!(
+                            "WARNING! File has unsaved changes. Press Ctrl-C {} more times to quit.",
+                            self.quit_attempts
+                        )
+                    );
+                    self.quit_attempts -= 1;
+                    return Ok(());
+                }
                 self.should_quit = true;
             }
             Key::Ctrl('s') => {
@@ -160,6 +173,10 @@ impl Editor {
             _ => (),
         }
         self.scroll();
+        if self.quit_attempts < FORCE_QUIT_ATTEMPTS {
+            self.quit_attempts = FORCE_QUIT_ATTEMPTS;
+            self.status_message = StatusMessage::from(String::new());
+        }
         Ok(())
     }
     fn scroll(&mut self) {
