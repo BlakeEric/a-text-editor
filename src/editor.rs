@@ -100,6 +100,26 @@ impl Editor {
         Terminal::cursor_show();
         Terminal::flush()
     }
+
+    fn prompt(&mut self, prompt: &str) -> Result<String, std::io::Error> {
+        let mut result = String::new();
+        // let mut result = String::new(format!("{}{}", prompt, result));
+        loop {
+            self.status_message = StatusMessage::from(format!("{}{}", prompt, result));
+            self.refresh_screen()?;
+            if let Key::Char(c) = Terminal::read_key()? {
+                if c == '\n' {
+                    self.status_message = StatusMessage::from(String::new());
+                    break;
+                }
+                if !c.is_control() {
+                    result.push(c);
+                }
+            }
+        }
+        Ok(result)
+    }
+
     fn process_keypress(&mut self) -> Result<(), std::io::Error> {
         let pressed_key = Terminal::read_key()?;
         match pressed_key {
@@ -107,6 +127,9 @@ impl Editor {
                 self.should_quit = true;
             }
             Key::Ctrl('s') => {
+                if self.document.file_name.is_none() {
+                    self.document.file_name = Some(self.prompt("Save as: ")?);
+                }
                 if self.document.save().is_ok() {
                     self.status_message = StatusMessage::from(
                         "File saved successfully.".to_string()
